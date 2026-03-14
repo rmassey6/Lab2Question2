@@ -1,58 +1,64 @@
 pipeline {
     agent any
 
-    triggers {
-        pollSCM('H/5 * * * *')
-    }
-
-    tools {
-        maven 'Maven3'
+    environment {
+        DOCKER_IMAGE = 'rmassey95/repo_4_integration:1.0'
+        DOCKER_CREDENTIALS_ID = 'dockerhub-credentials'
     }
 
     stages {
 
+        // a. Checkout Stage
         stage('Checkout') {
             steps {
-                echo 'Checking out source code...'
                 checkout scm
             }
         }
 
-        stage('Build') {
+        // b. Build Maven Project Stage
+        stage('Build Maven Project') {
             steps {
-                echo 'Building project...'
-                sh 'mvn clean compile'
+                sh 'mvn clean package -DskipTests'
             }
         }
 
-        stage('Test') {
+        // d. Docker Login Stage
+        stage('Docker Login') {
             steps {
-                echo 'Running tests...'
-                sh 'mvn test'
+                withCredentials([usernamePassword(
+                    credentialsId: "${DOCKER_CREDENTIALS_ID}",
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
+                }
             }
         }
 
-        stage('Package') {
+        // e. Docker Build Stage
+        stage('Docker Build') {
             steps {
-                echo 'Packaging application...'
-                sh 'mvn package'
+                sh "docker build -t ${DOCKER_IMAGE} ."
             }
         }
 
-        stage('Archive') {
+        // f. Docker Push Stage
+        stage('Docker Push') {
             steps {
-                echo 'Archiving WAR file...'
-                archiveArtifacts artifacts: 'target/*.war', fingerprint: true
+                sh "docker push ${DOCKER_IMAGE}"
             }
         }
     }
 
     post {
+        always {
+            sh 'docker logout'
+        }
         success {
             echo 'Pipeline completed successfully!'
         }
         failure {
-            echo 'Pipeline failed.'
+            echo 'Pipeline failed!'
         }
     }
 }
