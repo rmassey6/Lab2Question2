@@ -8,6 +8,7 @@ pipeline {
     environment {
         DOCKER_IMAGE = 'rmassey95/repo_4_integration:1.0'
         DOCKER_CREDENTIALS_ID = 'dockerhub-credentials'
+        PATH = "/usr/local/bin:$PATH"
     }
 
     stages {
