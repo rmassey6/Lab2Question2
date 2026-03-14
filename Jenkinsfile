@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven'  // Must match the name you set in Jenkins Tools
+    }
+
     environment {
         DOCKER_IMAGE = 'rmassey95/repo_4_integration:1.0'
         DOCKER_CREDENTIALS_ID = 'dockerhub-credentials'
